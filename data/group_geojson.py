@@ -2,17 +2,42 @@ import json
 from itertools import groupby
 from operator import itemgetter
 from datetime import datetime
+from shapely.geometry import box
+from shapely.wkt import loads
+import math
+
+RES = {
+    '300m': 300,
+    '400m': 400,
+    '500m': 500,
+    '750m': 750,
+    '1km': 1000,
+    '2km': 2000,
+    '3km': 3000,
+}
+
+def getSizeInDegrees(meters, latitude):
+    size_x = abs(meters / (111111.0 * math.cos(latitude)))
+    size_y = meters / 111111.0
+    return size_x, size_y
 
 def breakit(fpath, key):
     geojson = json.load(open('build/%s' % fpath, 'rb'))
+    res = fpath.split('_')[1]
+    size_x, size_y = getSizeInDegrees(float(RES[res]), 41.83399079583358)
     top = {
         'type': geojson['type'],
         'crs': geojson['crs'], 
     }
     feats = []
     for f in geojson['features']:
-        f['properties']['geometry'] = f['geometry']
-        feats.append(f['properties'])
+        if f.get('geometry'):
+            coords = f['geometry']['coordinates']
+            pt = loads('POINT(%s %s)' % (coords[0], coords[1]))
+            south, west = (pt.x - (size_x / 2)), (pt.y - (size_y /2))
+            north, east = (pt.x + (size_x / 2)), (pt.y + (size_y / 2))
+            f['properties']['geometry'] = box(south, west, north, east).__geo_interface__
+            feats.append(f['properties'])
     feats = sorted(feats, key=itemgetter(key))
     for k,g in groupby(feats, itemgetter(key)):
         if k:
@@ -35,7 +60,6 @@ def breakit(fpath, key):
             k = '-'.join(k.split('-')[:-1])
             date = datetime.strptime(k, '%Y-%m-%d %H:%M:%S')
             yield date, outp
-        
     
 if __name__ == "__main__":
     import os

@@ -2,18 +2,20 @@ VPATH = raw:finished_files:build
 
 include config.mk
 
-SHPS = '\
+SHPS = 'towing_300m_month.shp \
+towing_400m_month.shp \
 towing_500m_month.shp \
 towing_750m_month.shp \
 towing_1km_month.shp \
 towing_2km_month.shp \
 towing_3km_month.shp \
+towing_300m_year.shp \
+towing_400m_year.shp \
 towing_500m_year.shp \
 towing_750m_year.shp \
 towing_1km_year.shp \
 towing_2km_year.shp \
-towing_3km_year.shp \
-'
+towing_3km_year.shp'
 
 HEADERS = "type,date,wbez_category,primary_reason,reason_2,reason_3,reason_4,location,lat,lng"
 
@@ -39,7 +41,7 @@ towing_cleaned.csv: towing.csv
 		(echo $(HEADERS) ; tail -n +2) > build/$@
 
 towing.table: towing_cleaned.csv
-	@csvsql build/$(notdir $?) \
+	csvsql build/$(notdir $?) \
 		--db "postgresql://$(PG_USER):@$(PG_HOST):$(PG_PORT)/$(PG_DB)" --table wbez_towing --insert
 	@touch build/$@
 
@@ -51,60 +53,78 @@ towing.geom: towing.table
 		WHERE lng IS NOT NULL AND lat IS NOT NULL;"
 	@touch build/$@
 
+towing_300m_month.shp: towing.geom
+	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.00494560815341, 0.0027000027) as grid, \
+		date_trunc('month', date) as month from wbez_towing group by month, grid"
+
+towing_400m_month.shp: towing.geom
+	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.00659414420455, 0.0036000036) as grid, \
+		date_trunc('month', date) as month from wbez_towing group by month, grid"
+
 towing_500m_month.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.00555) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.00824268025569, 0.0045000045) as grid, \
 		date_trunc('month', date) as month from wbez_towing group by month, grid"
 
 towing_750m_month.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.008325) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.0123640203835, 0.00675000675001) as grid, \
 		date_trunc('month', date) as month from wbez_towing group by month, grid"
 
 towing_1km_month.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.0111) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.0164853605114, 0.00900000900001) as grid, \
 		date_trunc('month', date) as month from wbez_towing group by month, grid"
 
 towing_2km_month.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.0222) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.0329707210228, 0.018000018) as grid, \
 		date_trunc('month', date) as month from wbez_towing group by month, grid"
 
 towing_3km_month.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.0333) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.0494560815341, 0.027000027) as grid, \
 		date_trunc('month', date) as month from wbez_towing group by month, grid"
+
+towing_300m_year.shp: towing.geom
+	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.00494560815341, 0.0027000027) as grid, \
+		date_trunc('year', date) as year from wbez_towing group by year, grid"
+
+towing_400m_year.shp: towing.geom
+	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.00659414420455, 0.0036000036) as grid, \
+		date_trunc('year', date) as year from wbez_towing group by year, grid"
 
 towing_500m_year.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.00555) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.00824268025569, 0.0045000045) as grid, \
 		date_trunc('year', date) as year from wbez_towing group by year, grid"
 
 towing_750m_year.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.008325) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.0123640203835, 0.00675000675001) as grid, \
 		date_trunc('year', date) as year from wbez_towing group by year, grid"
 
 towing_1km_year.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.0111) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.0164853605114, 0.00900000900001) as grid, \
 		date_trunc('year', date) as year from wbez_towing group by year, grid"
 
 towing_2km_year.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.0222) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.0329707210228, 0.018000018) as grid, \
 		date_trunc('year', date) as year from wbez_towing group by year, grid"
 
 towing_3km_year.shp: towing.geom
 	@pgsql2shp -f build/$@ -u $(PG_USER) -h $(PG_HOST) -d $(PG_DB) \
-		"select count(*) as tow_count, st_snaptogrid(geom, 0.0333) as grid, \
+		"select count(*) as tow_count, st_snaptogrid(geom, 0.0494560815341, 0.027000027) as grid, \
 		date_trunc('year', date) as year from wbez_towing group by year, grid"
 
-%.geojson: shps
-	@for f in $?; do \
-		ogr2ogr -f GeoJSON build/$(basename $(notdir $$f)).geojson build/$(notdir $$f); \
-	done;
+%.geojson: %.shp
+	@ogr2ogr -f GeoJSON build/$@ build/$(notdir $?); \
 
 groups: %.geojson
 	@python group_geojson.py
